@@ -1,0 +1,94 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sample_packages"
+authors = [
+    {name = "Mezbaul Haque"},
+]
+description = "A template to kickstart Python-based projects."
+keywords = ["python", "linting", "formatting", "ci-cd", "template-project"]
+readme = "README.md"
+requires-python = ">=3.10"
+license = {file = "LICENSE"}
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+dependencies = []
+dynamic = ["version"]
+
+[project.optional-dependencies]
+testing = ["coverage", "pytest"]
+
+[project.scripts]
+sample-executable = "sample_package.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/mezbaul-h/hypy"
+Repository = "https://github.com/mezbaul-h/hypy.git"
+Issues = "https://github.com/mezbaul-h/hypy/issues"
+
+[tool.bandit]
+exclude_dirs = ["venv"]
+skips = ["B101"]
+
+[tool.black]
+color = true
+#extend-exclude = '''
+#/(
+#  | directory
+#)/
+#'''
+line-length = 119
+#target-version = ["py312"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "if self.debug:",
+  "if settings.DEBUG",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if 0:",
+  "if __name__ == .__main__.:",
+]
+
+[tool.coverage.run]
+branch = true
+omit = [
+  "*/test/*",
+  "locustfile.py",
+  "manage.py",
+]
+#source = ["package_name"]
+
+[tool.isort]
+color_output = true
+#extend_skip = ["directory"]
+line_length = 119
+multi_line_output = 3
+profile = "black"
+py_version = "auto"
+
+[tool.mypy]
+exclude = ["test"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+addopts = "-ra --verbose"
+testpaths = ["test"]
+
+[tool.setuptools.dynamic]
+version = {attr = "sample_package.__version__"}
+
+[tool.setuptools.packages]
+find = {}

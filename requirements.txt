@@ -1,0 +1,9 @@
+bandit[toml]==1.7.8
+black[jupyter]==24.4.2
+build==1.2.1
+coverage==7.5.3
+isort[colors]==5.13.2
+mypy==1.10.0
+pylint==3.2.2
+pytest==8.2.1
+requests==2.32.3
