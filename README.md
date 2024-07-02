@@ -71,3 +71,7 @@ bash scripts/test.sh
 ### Multi-Package Setup
 
 This project already includes `sample_package` and `sample_package2`. Whenever you release, both packages will be built and distributed when you run build commands. You can add more packages or even just one, depending on your needs.
+
+```shell
+pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+```
