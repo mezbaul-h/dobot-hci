@@ -70,7 +70,7 @@ class RealSenseFeedProcessor:
         pipeline = rs.pipeline()
         config = rs.config()
         config.enable_stream(rs.stream.depth, 640, 480, rs.format.z16, 30)
-        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
+        config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 60)
 
         # Start streaming
         pipeline.start(config)
@@ -80,7 +80,7 @@ class RealSenseFeedProcessor:
 
             while True:
                 # Wait for a coherent pair of frames: depth and color
-                frames = pipeline.wait_for_frames()
+                frames = pipeline.wait_for_frames(timeout_ms=100 * 1000)
                 depth_frame = frames.get_depth_frame()
                 color_frame = frames.get_color_frame()
                 if not depth_frame or not color_frame:
@@ -111,7 +111,7 @@ class RealSenseFeedProcessor:
 
                 # Display images
                 # cv2.imshow('RealSense', np.hstack((color_image, depth_colormap)))
-                cv2.imshow("RealSense", frame)
+                # cv2.imshow("RealSense", frame)
 
                 # Wait for a key press (self.delay_ms-millisecond delay).
                 key = cv2.waitKey(self.delay_ms) & 0xFF
@@ -120,15 +120,25 @@ class RealSenseFeedProcessor:
                 if key == ord("q"):
                     break
 
-                if key == ord("r"):
-                    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                    if process_frame_hook:
-                        process_frame_hook(
-                            frame=frame,
-                            frame_rgb=frame_rgb,
-                            depth_image=depth_image,
-                        )
+                # Convert to HSV color space
+                frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+                # grayscale
+                frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+                if process_frame_hook:
+                    annotated_frame = process_frame_hook(
+                        frame=frame,
+                        frame_gray=frame_gray,
+                        frame_hsv=frame_hsv,
+                        frame_rgb=frame_rgb,
+                        depth_image=depth_image,
+                    )
+
+                    # if annotated_frame:
+                    #     cv2.imshow("RealSense", annotated_frame)
 
                 if key_event_hook:
                     key_event_hook(key)

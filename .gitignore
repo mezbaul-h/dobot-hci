@@ -198,3 +198,5 @@ fabric.properties
 
 # Project specific
 config*.json
+
+*.pt

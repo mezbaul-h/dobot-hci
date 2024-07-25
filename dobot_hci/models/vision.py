@@ -1,3 +1,5 @@
+import warnings
+
 import requests
 
 from PIL import Image
@@ -6,8 +8,11 @@ from transformers import AutoProcessor, AutoModelForCausalLM
 
 class Florence2FT:
     def __init__(self) -> None:
-        self.model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large-ft", trust_remote_code=True)
-        self.processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large-ft", trust_remote_code=True)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+
+            self.model = AutoModelForCausalLM.from_pretrained("microsoft/Florence-2-large-ft", trust_remote_code=True)
+            self.processor = AutoProcessor.from_pretrained("microsoft/Florence-2-large-ft", trust_remote_code=True)
 
     def infer(self, image: Image):
         prompt = "<MORE_DETAILED_CAPTION>"
