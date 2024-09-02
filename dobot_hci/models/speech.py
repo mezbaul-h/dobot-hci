@@ -6,6 +6,7 @@ from typing import Optional
 from colorama import Fore
 from transformers import pipeline
 from transformers.pipelines.audio_utils import ffmpeg_microphone_live
+
 from ..audio import AudioIO
 from ..settings import settings
 from ..utils import log_to_queue
@@ -41,8 +42,8 @@ class SpeechRecognizer:
         if audio_data:
             transcription = self.transcriber(audio_data, batch_size=8)
 
-            if 'text' in transcription:
-                return transcription['text'].strip()
+            if "text" in transcription:
+                return transcription["text"].strip()
 
         return None
 
@@ -85,7 +86,7 @@ class SpeechRecognizer:
     def run(self, is_paused=None):
         while True:
             if is_paused and is_paused():
-                time.sleep(1/100)
+                time.sleep(1 / 100)
                 continue
 
             if self.shutdown_flag and self.shutdown_flag.is_set():

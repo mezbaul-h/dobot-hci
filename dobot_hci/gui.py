@@ -1,20 +1,17 @@
 import logging
 import math
+import queue
+import time
 from multiprocessing import Event
 from typing import Optional
 
-from ultralytics.utils.plotting import Annotator
-
 import cv2
 import numpy as np
-from PyQt5.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout, QLabel, QTextEdit
+import pyrealsense2 as rs
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap, QTextCursor
-
-import queue
-import time
-
-import pyrealsense2 as rs
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QTextEdit, QVBoxLayout, QWidget
+from ultralytics.utils.plotting import Annotator
 
 
 class QThreadBase(QThread):
@@ -34,9 +31,9 @@ class CameraThread(QThreadBase):
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.shutdown_event: Optional[Event] = kwargs.get('shutdown_event')
-        self.camera_index = kwargs.get('camera_index', 0)
-        self.object_positions = kwargs['object_positions']
+        self.shutdown_event: Optional[Event] = kwargs.get("shutdown_event")
+        self.camera_index = kwargs.get("camera_index", 0)
+        self.object_positions = kwargs["object_positions"]
         self.fps = None
         self.new_frame_time = None
         self.prev_frame_time = None
@@ -50,7 +47,7 @@ class CameraThread(QThreadBase):
 
         # RS
         self.realsense_pipeline = None
-        self.use_realsense = kwargs.get('use_realsense', False)
+        self.use_realsense = kwargs.get("use_realsense", False)
 
     @staticmethod
     def draw_fps(frame: np.ndarray, fps: float) -> np.ndarray:
@@ -77,11 +74,13 @@ class CameraThread(QThreadBase):
         overlay = drawn_frame.copy()
         cv2.rectangle(overlay, bg_rect_top_left, bg_rect_bottom_right, (0, 0, 0), -1)
         t = 0.25
-        cv2.addWeighted(overlay, t, drawn_frame, 1-t, 0, drawn_frame)
+        cv2.addWeighted(overlay, t, drawn_frame, 1 - t, 0, drawn_frame)
 
         # Draw text with glass effect
         text_pos = (width - text_size[0] - 20, bg_rect_height - 5)
-        cv2.putText(drawn_frame, fps_text, text_pos, font, font_scale, (200, 200, 200), font_thickness + 1, cv2.LINE_AA)
+        cv2.putText(
+            drawn_frame, fps_text, text_pos, font, font_scale, (200, 200, 200), font_thickness + 1, cv2.LINE_AA
+        )
         cv2.putText(drawn_frame, fps_text, text_pos, font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
 
         return drawn_frame
@@ -222,7 +221,7 @@ class CameraThread(QThreadBase):
             ret, frame = self.get_frame()
 
             if not ret:
-                time.sleep(1/100)
+                time.sleep(1 / 100)
                 continue
 
             self.new_frame_time = time.time()
@@ -253,7 +252,7 @@ class CameraThread(QThreadBase):
 
             self.change_pixmap_signal.emit((frame, processed_frame))
 
-            time.sleep(1/800)
+            time.sleep(1 / 800)
 
         self._destroy_camera_feed()
 
@@ -264,7 +263,7 @@ class LogStreamThread(QThreadBase):
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.log_queue = kwargs['log_queue']
+        self.log_queue = kwargs["log_queue"]
 
     def run(self):
         while self._run_flag:
@@ -281,12 +280,12 @@ class ObjectPositionStreamThread(QThreadBase):
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.object_positions = kwargs['object_positions']
+        self.object_positions = kwargs["object_positions"]
 
     def run(self):
         while self._run_flag:
             self.update_signal.emit(True)
-            time.sleep(1/100)
+            time.sleep(1 / 100)
 
 
 class GUIApplication(QWidget):
@@ -315,7 +314,7 @@ class GUIApplication(QWidget):
         self.object_position_text.setFixedWidth(480)
         self.object_position_text.setFixedHeight(self.display_height - log_height)  # Half of display_height
         self.object_position_text.setStyleSheet("background-color: #E2E2E2;")
-        self.object_positions = kwargs['object_positions']
+        self.object_positions = kwargs["object_positions"]
         self.object_position_updated_at = time.time()
 
         # Layout setup
@@ -333,7 +332,7 @@ class GUIApplication(QWidget):
         self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
         # self.setFixedSize(self.sizeHint())
 
-        self.latest_frame = kwargs['latest_frame']
+        self.latest_frame = kwargs["latest_frame"]
 
         self.camera_thread = CameraThread(**kwargs)
         self.camera_thread.change_pixmap_signal.connect(self.update_image)

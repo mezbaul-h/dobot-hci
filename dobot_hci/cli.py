@@ -1,27 +1,25 @@
 import json
 import logging
+import multiprocessing
+import queue
 import re
 import signal
-from multiprocessing import Event, Queue, Process, Manager
+import sys
+import time
+from multiprocessing import Event, Manager, Process, Queue
 from typing import List
 
 import click
-from PIL import Image
+import numpy as np
 from colorama import Fore
+from PIL import Image
+from PyQt5.QtWidgets import QApplication
 
 from .gui import GUIApplication
 from .models.language import OllamaLM
 from .models.speech import SpeechRecognizer
-from .utils import print_system_message, log_to_queue
-import sys
-
-import numpy as np
-from PyQt5.QtWidgets import QApplication
-import multiprocessing
-import queue
-import time
 from .models.vision import MicrosoftFlorence2
-
+from .utils import log_to_queue, print_system_message
 
 # Thread-safe flag for graceful shutdown
 _shutdown_flag = Event()
@@ -82,8 +80,8 @@ def _set_shutdown_flag():
 class ImageSharer:
     def __init__(self, max_size=(1920, 1080, 3)):  # Adjust max_size as needed
         self.max_size = max_size
-        self.shared_array = multiprocessing.Array('B', max_size[0] * max_size[1] * max_size[2])
-        self.metadata = multiprocessing.Array('i', 3)  # To store current image dimensions
+        self.shared_array = multiprocessing.Array("B", max_size[0] * max_size[1] * max_size[2])
+        self.metadata = multiprocessing.Array("i", 3)  # To store current image dimensions
 
     def update_image(self, cv_img):
         h, w, c = cv_img.shape
@@ -97,12 +95,12 @@ class ImageSharer:
 
         # Update image data
         shared_np_array = np.frombuffer(self.shared_array.get_obj(), dtype=np.uint8)
-        shared_np_array[:h * w * c] = cv_img.ravel()
+        shared_np_array[: h * w * c] = cv_img.ravel()
 
     def get_image(self):
         h, w, c = self.metadata
         shared_np_array = np.frombuffer(self.shared_array.get_obj(), dtype=np.uint8)
-        return shared_np_array[:h * w * c].reshape(h, w, c)
+        return shared_np_array[: h * w * c].reshape(h, w, c)
 
 
 def process_transcription(transcription, log_queue):
@@ -124,10 +122,12 @@ def process_transcription(transcription, log_queue):
 
     full_content = ""
 
-    for out in _llm_model.forward([
-        {"role": "system", "content": _system_prompt},
-        {"role": "user", "content": transcription},
-    ]):
+    for out in _llm_model.forward(
+        [
+            {"role": "system", "content": _system_prompt},
+            {"role": "user", "content": transcription},
+        ]
+    ):
         if out:
             full_content += out["content"]
 
@@ -152,10 +152,10 @@ def transcription_handler(**kwargs):
     """
     Handles voice input and generates list of actions.
     """
-    action_queue = kwargs['action_queue']
-    log_queue = kwargs['log_queue']
-    robot_working_flag = kwargs['robot_working_flag']
-    shutdown_flag = kwargs['shutdown_flag']
+    action_queue = kwargs["action_queue"]
+    log_queue = kwargs["log_queue"]
+    robot_working_flag = kwargs["robot_working_flag"]
+    shutdown_flag = kwargs["shutdown_flag"]
     speech_recognizer = SpeechRecognizer(
         log_queue=log_queue,
         shutdown_flag=shutdown_flag,
@@ -187,12 +187,12 @@ def robot_controller(**kwargs):
     2. Uses florence's open vocab detection to annotate target objects
     3. Makes robot to perform actions
     """
-    action_queue = kwargs['action_queue']
+    action_queue = kwargs["action_queue"]
     florence_vision_model = MicrosoftFlorence2()
-    latest_frame = kwargs['latest_frame']
-    log_queue = kwargs['log_queue']
-    object_positions = kwargs['object_positions']
-    robot_working_flag = kwargs['robot_working_flag']
+    latest_frame = kwargs["latest_frame"]
+    log_queue = kwargs["log_queue"]
+    object_positions = kwargs["object_positions"]
+    robot_working_flag = kwargs["robot_working_flag"]
 
     while not _shutdown_flag.is_set():
         try:
@@ -241,19 +241,19 @@ def _real_main(**kwargs):
     manager = Manager()
 
     process_kwargs = {
-        'action_queue': Queue(),
-        'latest_frame': ImageSharer(),
-        'log_queue': Queue(),
-        'object_positions': manager.dict(),
-        'robot_working_flag': Event(),
-        'shutdown_flag': _shutdown_flag,
-        'use_realsense': kwargs['use_realsense'],
+        "action_queue": Queue(),
+        "latest_frame": ImageSharer(),
+        "log_queue": Queue(),
+        "object_positions": manager.dict(),
+        "robot_working_flag": Event(),
+        "shutdown_flag": _shutdown_flag,
+        "use_realsense": kwargs["use_realsense"],
     }
 
     processes = [
         Process(target=robot_controller, kwargs=process_kwargs),
         Process(target=transcription_handler, kwargs=process_kwargs),
-        Process(target=ui_handler, kwargs=process_kwargs)
+        Process(target=ui_handler, kwargs=process_kwargs),
     ]
 
     # Start processes
@@ -261,7 +261,7 @@ def _real_main(**kwargs):
         process.start()
 
     if not _shutdown_flag.is_set():
-        time.sleep(1/10)
+        time.sleep(1 / 10)
 
     # Wait for processes to finish
     for process in processes:
@@ -271,6 +271,8 @@ def _real_main(**kwargs):
 
 
 @click.command()
-@click.option("-rs", "--use-realsense", is_flag=True, show_default=True, default=False, help="Use Intel RealSense Camera.")
+@click.option(
+    "-rs", "--use-realsense", is_flag=True, show_default=True, default=False, help="Use Intel RealSense Camera."
+)
 def main(**kwargs):
     _real_main(**kwargs)

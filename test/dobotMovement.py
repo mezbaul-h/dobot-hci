@@ -1,8 +1,8 @@
 import math
 import time
 
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 from pydobot import Dobot
 from serial.tools import list_ports
@@ -43,7 +43,7 @@ def apply_constraints(x, y, z, base_height, rear_arm_length):
     z_adj = z - base_height
 
     # Apply constraints
-    distance_from_base = np.sqrt(x_adj ** 2 + y_adj ** 2 + z_adj ** 2)
+    distance_from_base = np.sqrt(x_adj**2 + y_adj**2 + z_adj**2)
     mask = (z >= base_height) & (distance_from_base <= max_reach) & (distance_from_base >= rear_arm_length)
 
     # Apply motion range constraints
@@ -62,28 +62,28 @@ def backup():
 
     # Create 3D plot
     fig = plt.figure(figsize=(12, 10))
-    ax = fig.add_subplot(111, projection='3d')
+    ax = fig.add_subplot(111, projection="3d")
 
     # Plot points
-    scatter = ax.scatter(x, y, z, c=z, cmap='viridis', marker='.', s=1)
+    scatter = ax.scatter(x, y, z, c=z, cmap="viridis", marker=".", s=1)
 
     # Plot the base and arm
-    ax.plot([0, 0], [0, 0], [0, base_height], color='black', linewidth=2)
-    ax.plot([0, rear_arm_length], [0, 0], [base_height, base_height], color='blue', linewidth=2)
-    ax.plot([rear_arm_length, max_reach], [0, 0], [base_height, base_height], color='green', linewidth=2)
+    ax.plot([0, 0], [0, 0], [0, base_height], color="black", linewidth=2)
+    ax.plot([0, rear_arm_length], [0, 0], [base_height, base_height], color="blue", linewidth=2)
+    ax.plot([rear_arm_length, max_reach], [0, 0], [base_height, base_height], color="green", linewidth=2)
 
     # Set labels and title
-    ax.set_xlabel('X axis (mm)')
-    ax.set_ylabel('Y axis (mm)')
-    ax.set_zlabel('Z axis (mm)')
-    ax.set_title('Workspace of Dobot Magician')
+    ax.set_xlabel("X axis (mm)")
+    ax.set_ylabel("Y axis (mm)")
+    ax.set_zlabel("Z axis (mm)")
+    ax.set_title("Workspace of Dobot Magician")
 
     # Set equal aspect ratio
     ax.set_box_aspect((1, 1, 1))
 
     # Add a color bar
     cbar = plt.colorbar(scatter)
-    cbar.set_label('Height (mm)')
+    cbar.set_label("Height (mm)")
 
     # Add text annotations
     ax.text2D(0.05, 0.95, f"Max reach: {max_reach}mm", transform=ax.transAxes)
@@ -107,8 +107,8 @@ def move_to_point(device, x, y, z):
     device.move_to(x, y, z, 0, wait=True)
     time.sleep(0.5)  # Short pause at each point
 
-def trace_workspace_border(device):
 
+def trace_workspace_border(device):
     print("Tracing workspace border...")
     # Trace the outer circle at various heights
     heights = [base_height, base_height + 50, base_height + 100, base_height + 150]

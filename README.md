@@ -79,7 +79,4 @@ pip3 install torch torchvision torchaudio --index-url https://download.pytorch.o
 
 ```shell
 QT_QPA_PLATFORM=wayland python -m dobot_hci
-
-# deps on cpu
-SAM2_BUILD_CUDA=0 pip install -r ...
 ```

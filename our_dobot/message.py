@@ -2,7 +2,7 @@ from .parsers import parsers
 
 
 class Message:
-    def __init__(self, header, length, id, rw, is_queued, params, direction='in'):
+    def __init__(self, header, length, id, rw, is_queued, params, direction="in"):
         self.header = header
         self.length = length
         self.id = id
@@ -11,12 +11,12 @@ class Message:
         self.raw_params = []
         self.params = []
 
-        if direction == 'in':
+        if direction == "in":
             self.raw_params = params
-            self.params = self.parse_params('in')
-        elif direction == 'out':
+            self.params = self.parse_params("in")
+        elif direction == "out":
             self.params = params
-            self.raw_params = self.parse_params('out')
+            self.raw_params = self.parse_params("out")
 
     @staticmethod
     def calculate_checksum(payload):
@@ -54,9 +54,9 @@ class Message:
     @staticmethod
     def read(serial):
         header = serial.read(2)
-        if header != b'\xaa\xaa':
+        if header != b"\xaa\xaa":
             return None
-        length = int.from_bytes(serial.read(1), 'little')
+        length = int.from_bytes(serial.read(1), "little")
         payload = serial.read(length)
         checksum = serial.read(1)
 
@@ -65,7 +65,7 @@ class Message:
     def parse_params(self, direction):
         message_parsers = parsers[self.id]
 
-        if direction == 'in':
+        if direction == "in":
             if message_parsers is None:
                 return None
 
@@ -81,12 +81,12 @@ class Message:
                 return []
 
             return parser(self.raw_params)
-        elif direction == 'out':
+        elif direction == "out":
             if message_parsers is None:
                 return []
 
             parser = None
-            if direction == 'out' and self.rw == 1:
+            if direction == "out" and self.rw == 1:
                 parser = message_parsers[3]
 
             if parser is None:
@@ -96,7 +96,7 @@ class Message:
 
     def package(self):
         self.length = 2 + len(self.raw_params)
-        control = int('000000' + str(int(self.is_queued)) + str(int(self.rw)), 2)
+        control = int("000000" + str(int(self.is_queued)) + str(int(self.rw)), 2)
         self.checksum = Message.calculate_checksum([self.id] + [control] + self.raw_params)
 
         result = bytes(self.header + [self.length] + [self.id] + [control] + self.raw_params + [self.checksum])

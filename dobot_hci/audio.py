@@ -7,17 +7,16 @@ from multiprocessing import Event, Queue
 from typing import Dict, List, Optional, Union
 
 import numpy as np
-import pygame.mixer
 
-from .utils import print_system_message, suppress_stdout_stderr, log_to_queue
+from .utils import log_to_queue
 
 
 class AudioIO:
     """
-    A class for recording and playing audio using PyAudio and Pygame.
+    A class for recording and playing audio using PyAudio.
 
     This class provides methods for initializing an input audio stream, recording audio,
-    detecting silence in audio data, and playing WAV files using Pygame.
+    detecting silence in audio data, and playing WAV files.
 
     Attributes:
         RATE: The sample rate for audio recording and playback (default: 24000).
@@ -61,8 +60,7 @@ class AudioIO:
         """
         import pyaudio
 
-        with suppress_stdout_stderr():
-            self.pa = pyaudio.PyAudio()
+        self.pa = pyaudio.PyAudio()
 
         self.input_stream = self.pa.open(
             channels=1,
@@ -94,17 +92,6 @@ class AudioIO:
             True if the audio data is silent, False otherwise.
         """
         return np.max(data) < AudioIO.THRESHOLD
-
-    @staticmethod
-    def play_wav(file_path: str) -> None:
-        """
-        Play a WAV audio file using Pygame.
-
-        Args:
-            file_path: The path to the WAV file to be played.
-        """
-        pygame.mixer.music.load(file_path)
-        pygame.mixer.music.play()
 
     def record_audio(self) -> Optional[Dict[str, Union[int, np.ndarray]]]:
         """
