@@ -1,30 +1,32 @@
-import asyncio
 import logging
-import sys
 import time
-from multiprocessing import Event
+from multiprocessing import Event, Queue
 from typing import Optional
 
+from colorama import Fore
 from transformers import pipeline
-import torch
 from transformers.pipelines.audio_utils import ffmpeg_microphone_live
 from ..audio import AudioIO
-from ..utils import print_system_message
-
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+from ..settings import settings
+from ..utils import log_to_queue
 
 
 class SpeechRecognizer:
     def __init__(self, **kwargs) -> None:
-        self.shutdown_event: Optional[Event] = kwargs.get("shutdown_event")
+        self.device = settings.TORCH_DEVICE
+        self.log_queue: Optional[Queue] = kwargs.get("log_queue")
+        self.shutdown_flag: Optional[Event] = kwargs.get("shutdown_flag")
         self.command_classifier = pipeline(
-            "audio-classification", model="MIT/ast-finetuned-speech-commands-v2", device=device
+            "audio-classification", model="MIT/ast-finetuned-speech-commands-v2", device=self.device
         )
-        self.audio_io = AudioIO()
+        self.audio_io = AudioIO(
+            log_queue=self.log_queue,
+            shutdown_flag=self.shutdown_flag,
+        )
         self.transcriber = pipeline(
             "automatic-speech-recognition",
             chunk_length_s=10,
-            device=device,
+            device=self.device,
             model="openai/whisper-small.en",
             # token=settings.HF_TOKEN,
             torch_dtype="auto",
@@ -65,17 +67,19 @@ class SpeechRecognizer:
             stream_chunk_s=stream_chunk_s,
         )
 
-        print_system_message("Listening for wake word...", log_level=logging.INFO)
+        log_to_queue(self.log_queue, "Listening for wake word...", color=Fore.BLUE, log_level=logging.ERROR)
 
         for prediction in self.command_classifier(mic):
             prediction = prediction[0]
+
             if debug:
                 print(prediction)
+
             if prediction["label"] == wake_word:
                 if prediction["score"] > prob_threshold:
                     return True
 
-            if self.shutdown_event and self.shutdown_event.is_set():
+            if self.shutdown_flag and self.shutdown_flag.is_set():
                 break
 
     def run(self, is_paused=None):
@@ -84,9 +88,12 @@ class SpeechRecognizer:
                 time.sleep(1/100)
                 continue
 
+            if self.shutdown_flag and self.shutdown_flag.is_set():
+                break
+
             self.wait_on_wake_command(debug=False)
 
-            if self.shutdown_event and self.shutdown_event.is_set():
+            if self.shutdown_flag and self.shutdown_flag.is_set():
                 break
 
             transcription = self.transcribe()

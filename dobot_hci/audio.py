@@ -3,12 +3,13 @@ This module provides classes and functions for recording and playing audio.
 """
 
 import logging
+from multiprocessing import Event, Queue
 from typing import Dict, List, Optional, Union
 
 import numpy as np
 import pygame.mixer
 
-from .utils import print_system_message, suppress_stdout_stderr
+from .utils import print_system_message, suppress_stdout_stderr, log_to_queue
 
 
 class AudioIO:
@@ -48,9 +49,11 @@ class AudioIO:
         """
         self.close()
 
-    def __init__(self) -> None:
-        self.pa = None
+    def __init__(self, **kwargs) -> None:
         self.input_stream = None
+        self.log_queue: Optional[Queue] = kwargs.get("log_queue")
+        self.pa = None
+        self.shutdown_flag: Optional[Event] = kwargs.get("shutdown_flag")
 
     def _initialize_input_stream(self) -> None:
         """
@@ -118,10 +121,9 @@ class AudioIO:
         recording = True
 
         self.input_stream.start_stream()
-        # print_system_message("Listening for sound...", log_level=logging.INFO)
-        print_system_message("Recording...", log_level=logging.INFO)
+        log_to_queue(self.log_queue, "Recording...", log_level=logging.INFO)
 
-        while True:
+        while not (self.shutdown_flag and self.shutdown_flag.is_set()):
             data: np.ndarray = np.frombuffer(self.input_stream.read(self.CHUNK), dtype=np.int16)
 
             # if not recording and not self.is_silent(data):
@@ -136,10 +138,13 @@ class AudioIO:
                     current_silence = 0
 
                 if current_silence > (self.SILENCE_LIMIT * self.RATE / self.CHUNK):
-                    print_system_message("Silence detected, stopping recording...", log_level=logging.INFO)
+                    log_to_queue(self.log_queue, "Silence detected, stopping recording...", log_level=logging.INFO)
                     break
 
         self.input_stream.stop_stream()
+
+        if self.shutdown_flag and self.shutdown_flag.is_set():
+            return None
 
         if recording:
             raw_data = np.hstack(frames)

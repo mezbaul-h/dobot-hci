@@ -4,23 +4,24 @@ from typing import Union
 from unittest.mock import patch
 
 import numpy as np
-import requests
-import torch
 
 from PIL import Image
 import supervision as sv
 from transformers.dynamic_module_utils import get_imports
 
 from dobot_hci.settings import settings
-from ultralytics import SAM
 
 
 def fixed_get_imports(filename: Union[str, os.PathLike]) -> list[str]:
-    """Work around for https://huggingface.co/microsoft/phi-1_5/discussions/72."""
+    """
+    Work around for: https://huggingface.co/microsoft/phi-1_5/discussions/72
+    """
     if not str(filename).endswith("/modeling_florence2.py"):
         return get_imports(filename)
+
     imports = get_imports(filename)
     imports.remove("flash_attn")
+
     return imports
 
 
@@ -99,3 +100,13 @@ class MetaSAM2:
         detections.mask = mask.astype(bool)
 
         return detections
+
+
+class YOLO:
+    def __init__(self, model_name: str = "yolov8s-worldv2.pt"):
+        from ultralytics import YOLO as UL_YOLO
+
+        self.model = UL_YOLO(model_name, verbose=False)
+
+    def get_classes(self):
+        return self.model.names

@@ -203,3 +203,5 @@ config*.json
 
 custom_models/sam2/**/*
 !custom_models/sam2/.gitkeep
+custom_models/yolo/**/*
+!custom_models/yolo/.gitkeep

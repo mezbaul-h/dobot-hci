@@ -169,7 +169,7 @@ def ansi_to_html(ansi_code):
 
     # Determine the RGB values based on the ANSI code
     code = int(match.group(1))
-    if code >= 30 and code <= 37:
+    if 30 <= code <= 37:
         # Regular colors
         r, g, b = [0, 0, 0]
         if code == 30:
@@ -188,7 +188,7 @@ def ansi_to_html(ansi_code):
             r, g, b = 0, 255, 255
         elif code == 37:
             r, g, b = 255, 255, 255
-    elif code >= 90 and code <= 97:
+    elif 90 <= code <= 97:
         # Bright colors
         r, g, b = [128, 128, 128]
         if code == 90:
@@ -217,4 +217,4 @@ def ansi_to_html(ansi_code):
 def log_to_queue(queue: Queue, message: str, color: str = Fore.BLUE, log_level: int = logging.DEBUG, scope: str = "system") -> None:
     color = ansi_to_html(color.split("[")[-1])
 
-    queue.put_nowait(f'<span style="color:{color};">[{scope}]> {message}</span>')
+    queue.put_nowait(f'<span style="color:{color};"><b>[{scope}]</b>&gt; {message}</span>')
