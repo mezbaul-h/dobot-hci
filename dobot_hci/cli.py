@@ -8,7 +8,7 @@ import signal
 import sys
 import time
 from multiprocessing import Event, Queue, Process, Manager
-from typing import Optional
+from typing import Optional, List
 
 import click
 from PIL import Image
@@ -130,6 +130,8 @@ class CameraThread(QThread):
         self.last_fps_update = None
         self.frame_update_interval = 2  # seconds
         self.yolo_vision_model = YOLOVisionModel()
+        self.aruco_detector = None
+        self.aruco_last_detected_at = time.time()
 
     @staticmethod
     def draw_fps(frame: np.ndarray, fps: float) -> np.ndarray:
@@ -211,7 +213,44 @@ class CameraThread(QThread):
 
         return processed_frame
 
+    def detect_aruco_markers(self, frame):
+        corners, ids, _ = self.aruco_detector.detectMarkers(frame)
+
+        # Initialize the dictionary to store marker ID and bounding box coordinates
+        markers = {}
+
+        if ids is not None:
+            for i, corner in enumerate(corners):
+                # Get the coordinates of the bounding box
+                x_min = int(min(corner[0][:, 0]))
+                y_min = int(min(corner[0][:, 1]))
+                x_max = int(max(corner[0][:, 0]))
+                y_max = int(max(corner[0][:, 1]))
+
+                # Add to dictionary
+                markers[f"aruco-marker-{int(ids[i][0])}"] = (x_min, y_min, x_max, y_max)
+
+        if markers:
+            for marker_id, positions in markers.items():
+                if marker_id not in self.object_positions:
+                    self.object_positions[marker_id] = positions
+            self.aruco_last_detected_at = time.time()
+        elif (time.time() - self.aruco_last_detected_at) >= 2:
+            for k in self.object_positions.keys():
+                if k.startswith("aruco-marker-"):
+                    del self.object_positions[k]
+
+        return markers
+
     def run(self):
+        aruco_dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_100)
+
+        aruco_parameters = cv2.aruco.DetectorParameters()
+        aruco_parameters.minDistanceToBorder = 0
+        aruco_parameters.adaptiveThreshWinSizeMax = 400
+
+        self.aruco_detector = cv2.aruco.ArucoDetector(aruco_dictionary, aruco_parameters)
+
         cap = cv2.VideoCapture(self.camera_index)
 
         if not cap.isOpened():
@@ -222,7 +261,7 @@ class CameraThread(QThread):
             ret, frame = cap.read()
 
             if not ret:
-                cv2.waitKey(50)
+                time.sleep(1/100)
                 continue
 
             self.new_frame_time = time.time()
@@ -242,15 +281,20 @@ class CameraThread(QThread):
             # processed_frame, object_positions = self.annotate_with_yolo(frame.copy())
             processed_frame = frame.copy()
 
+            # Pass 1: No op, aruco
+            self.detect_aruco_markers(cv2.cvtColor(processed_frame, cv2.COLOR_RGB2GRAY))
+
+            # Pass 2: Frame contains all objects
             processed_frame = self.annotate_objects_to_frame(processed_frame)
 
+            # Pass 3: Frame contains fps info
             processed_frame = self.draw_fps(processed_frame, self.fps)
 
             # self.update_object_positions_signal.emit(object_positions)
 
             self.change_pixmap_signal.emit((frame, processed_frame))
 
-            cv2.waitKey(50)
+            time.sleep(1/500)
 
         cap.release()
 
@@ -484,14 +528,18 @@ def producer(**kwargs):
         return robot_working.is_set()
 
     for transcription in speech_recognizer.run(is_paused=_is_paused):
-        # actions = process_transcription(transcription, log_queue=log_queue)
+        actions = process_transcription(transcription, log_queue=log_queue)
 
-        if transcription:
+        if actions:
             robot_working.set()
-            action_queue.put_nowait(transcription)
+            action_queue.put_nowait(actions)
 
         if shutdown_flag.is_set():
             break
+
+
+def process_actions(actions: List[dict]) -> None:
+    ...
 
 
 def consumer(**kwargs):
@@ -505,21 +553,22 @@ def consumer(**kwargs):
     while not shutdown_flag.is_set():
         try:
             # print(object_positions)
-            item = action_queue.get(timeout=1)
-            log_to_queue(log_queue, f"Consumed: {item}")
-            frame = Image.fromarray(latest_frame.get_image())
-            _, result = florence_vision_model.run_inference(frame, item)
-            detections = florence_vision_model.inference_to_sv_detections(result, frame)
+            actions = action_queue.get(timeout=1)
+            log_to_queue(log_queue, f"Consumed: {actions}")
 
-            new_object_positions = {}
-
-            for detection in detections:
-                new_object_positions[detections[-1]['class_name'][0]] = detection[0].tolist()
-
-            object_positions.clear()
-            object_positions.update(new_object_positions)
-
-            robot_working.clear()
+            # frame = Image.fromarray(latest_frame.get_image())
+            # _, result = florence_vision_model.run_inference(frame, item)
+            # detections = florence_vision_model.inference_to_sv_detections(result, frame)
+            #
+            # new_object_positions = {}
+            #
+            # for detection in detections:
+            #     new_object_positions[detections[-1]['class_name'][0]] = detection[0].tolist()
+            #
+            # object_positions.clear()
+            # object_positions.update(new_object_positions)
+            #
+            # robot_working.clear()
         except queue.Empty:
             pass
 
