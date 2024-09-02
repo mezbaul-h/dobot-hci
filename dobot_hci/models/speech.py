@@ -1,5 +1,9 @@
+import asyncio
 import logging
 import sys
+import time
+from multiprocessing import Event
+from typing import Optional
 
 from transformers import pipeline
 import torch
@@ -12,6 +16,7 @@ device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 class SpeechRecognizer:
     def __init__(self, **kwargs) -> None:
+        self.shutdown_event: Optional[Event] = kwargs.get("shutdown_event")
         self.command_classifier = pipeline(
             "audio-classification", model="MIT/ast-finetuned-speech-commands-v2", device=device
         )
@@ -70,9 +75,20 @@ class SpeechRecognizer:
                 if prediction["score"] > prob_threshold:
                     return True
 
-    def run(self):
+            if self.shutdown_event and self.shutdown_event.is_set():
+                break
+
+    def run(self, is_paused=None):
         while True:
+            if is_paused and is_paused():
+                time.sleep(1/100)
+                continue
+
             self.wait_on_wake_command(debug=False)
+
+            if self.shutdown_event and self.shutdown_event.is_set():
+                break
+
             transcription = self.transcribe()
 
             yield transcription

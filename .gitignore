@@ -200,3 +200,6 @@ fabric.properties
 config*.json
 
 *.pt
+
+custom_models/sam2/**/*
+!custom_models/sam2/.gitkeep

@@ -75,3 +75,11 @@ This project already includes `sample_package` and `sample_package2`. Whenever y
 ```shell
 pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 ```
+
+
+```shell
+QT_QPA_PLATFORM=wayland python -m dobot_hci
+
+# deps on cpu
+SAM2_BUILD_CUDA=0 pip install -r ...
+```
