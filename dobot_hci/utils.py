@@ -4,6 +4,7 @@ This module provides utility classes and functions.
 
 import logging
 import re
+import time
 
 import torch.multiprocessing as mp
 from colorama import Fore, Style
@@ -14,6 +15,20 @@ _formatter = logging.Formatter("%(message)s")
 _handler.setFormatter(_formatter)
 logger.addHandler(_handler)
 logger.setLevel(logging.INFO)
+
+
+class ProcessTime:
+    def __enter__(self):
+        self.start = time.perf_counter()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.end = time.perf_counter()
+        self.elapsed = self.end - self.start
+        print(f"{self.prefix or ''} time taken: {self.elapsed:.3f} seconds".strip())
+
+    def __init__(self, prefix: str = None):
+        self.prefix = prefix
 
 
 def print_system_message(

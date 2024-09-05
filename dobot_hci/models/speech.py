@@ -1,4 +1,5 @@
 import logging
+import sys
 import time
 from typing import Optional
 
@@ -9,7 +10,7 @@ from transformers.pipelines.audio_utils import ffmpeg_microphone_live
 
 from ..audio import AudioIO
 from ..settings import settings
-from ..utils import log_to_queue
+from ..utils import ProcessTime, log_to_queue
 
 
 class SpeechRecognizer:
@@ -40,7 +41,8 @@ class SpeechRecognizer:
         audio_data = self.audio_io.record_audio()
 
         if audio_data:
-            transcription = self.transcriber(audio_data, batch_size=8)
+            with ProcessTime("Transcription"):
+                transcription = self.transcriber(audio_data, batch_size=8)
 
             if "text" in transcription:
                 return transcription["text"].strip()
@@ -57,7 +59,8 @@ class SpeechRecognizer:
     ):
         if wake_word not in self.command_classifier.model.config.label2id.keys():
             raise ValueError(
-                f"Wake word {wake_word} not in set of valid class labels, pick a wake word in the set {self.command_classifier.model.config.label2id.keys()}."
+                f"Wake word {wake_word} not in set of valid class labels, pick a wake word in the "
+                f"set {self.command_classifier.model.config.label2id.keys()}."
             )
 
         sampling_rate = self.command_classifier.feature_extractor.sampling_rate
