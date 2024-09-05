@@ -1,8 +1,10 @@
+audioread
 click
 colorama
 einops
 numpy
 opencv-python
+pillow
 PyAudio
 pyrealsense2
 PyQt5

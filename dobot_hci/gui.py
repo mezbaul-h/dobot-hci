@@ -1,5 +1,6 @@
 import logging
 import math
+import os
 import queue
 import time
 from multiprocessing import Event
@@ -8,10 +9,14 @@ from typing import Optional
 import cv2
 import numpy as np
 import pyrealsense2 as rs
-from PyQt5.QtCore import Qt, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QLibraryInfo, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap, QTextCursor
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QTextEdit, QVBoxLayout, QWidget
 from ultralytics.utils.plotting import Annotator
+
+# Fix for conflicting qt version between PyQt5 and OpenCV.
+# Ref: https://stackoverflow.com/a/68417901/6580516
+os.environ["QT_QPA_PLATFORM_PLUGIN_PATH"] = QLibraryInfo.location(QLibraryInfo.PluginsPath)
 
 
 class QThreadBase(QThread):
@@ -329,7 +334,7 @@ class GUIApplication(QWidget):
         self.setLayout(main_layout)
 
         # Disable window close button and resize handles
-        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint)
+        self.setWindowFlags(Qt.Window | Qt.WindowTitleHint | Qt.CustomizeWindowHint | Qt.WindowCloseButtonHint)
         # self.setFixedSize(self.sizeHint())
 
         self.latest_frame = kwargs["latest_frame"]

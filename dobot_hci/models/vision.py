@@ -3,7 +3,6 @@ import warnings
 from typing import Union
 from unittest.mock import patch
 
-import numpy as np
 import supervision as sv
 from PIL import Image
 from transformers.dynamic_module_utils import get_imports
