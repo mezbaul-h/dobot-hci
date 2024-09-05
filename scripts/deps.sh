@@ -1,18 +1,6 @@
 #!/usr/bin/env bash
 
 
-if [ -f /etc/os-release ]; then
-  . /etc/os-release
-  if [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
-    echo "System is $PRETTY_NAME"
-    sudo apt install ffmpeg libxcb-xinerama0
-  else
-    echo "System is not Ubuntu or Debian"
-  fi
-else
-  echo "Cannot determine OS"
-fi
-
 python -m pip install --upgrade pip
 
 install_cpu_dependencies() {
