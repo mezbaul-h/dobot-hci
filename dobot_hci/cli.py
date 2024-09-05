@@ -1,16 +1,15 @@
 import json
 import logging
-import multiprocessing
 import queue
 import re
 import signal
 import sys
 import time
-from multiprocessing import Event, Manager, Process, Queue
 from typing import List
 
 import click
 import numpy as np
+import torch.multiprocessing as mp
 from colorama import Fore
 from PIL import Image
 from PyQt5.QtWidgets import QApplication
@@ -22,7 +21,7 @@ from .models.vision import MicrosoftFlorence2
 from .utils import log_to_queue, print_system_message
 
 # Thread-safe flag for graceful shutdown
-_shutdown_flag = Event()
+_shutdown_flag = mp.Event()
 
 
 _exit_pattern = re.compile(r"\b(exit|quit|stop)\b", re.IGNORECASE)
@@ -80,8 +79,8 @@ def _set_shutdown_flag():
 class ImageSharer:
     def __init__(self, max_size=(1920, 1080, 3)):  # Adjust max_size as needed
         self.max_size = max_size
-        self.shared_array = multiprocessing.Array("B", max_size[0] * max_size[1] * max_size[2])
-        self.metadata = multiprocessing.Array("i", 3)  # To store current image dimensions
+        self.shared_array = mp.Array("B", max_size[0] * max_size[1] * max_size[2])
+        self.metadata = mp.Array("i", 3)  # To store current image dimensions
 
     def update_image(self, cv_img):
         h, w, c = cv_img.shape
@@ -238,22 +237,22 @@ def signal_handler(signum, frame):
 def _real_main(**kwargs):
     signal.signal(signal.SIGINT, signal_handler)
 
-    manager = Manager()
+    manager = mp.Manager()
 
     process_kwargs = {
-        "action_queue": Queue(),
+        "action_queue": mp.Queue(),
         "latest_frame": ImageSharer(),
-        "log_queue": Queue(),
+        "log_queue": mp.Queue(),
         "object_positions": manager.dict(),
-        "robot_working_flag": Event(),
+        "robot_working_flag": mp.Event(),
         "shutdown_flag": _shutdown_flag,
         "use_realsense": kwargs["use_realsense"],
     }
 
     processes = [
-        Process(target=robot_controller, kwargs=process_kwargs),
-        Process(target=transcription_handler, kwargs=process_kwargs),
-        Process(target=ui_handler, kwargs=process_kwargs),
+        mp.Process(target=robot_controller, kwargs=process_kwargs),
+        mp.Process(target=transcription_handler, kwargs=process_kwargs),
+        mp.Process(target=ui_handler, kwargs=process_kwargs),
     ]
 
     # Start processes

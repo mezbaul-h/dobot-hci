@@ -4,8 +4,8 @@ This module provides utility classes and functions.
 
 import logging
 import re
-from multiprocessing import Queue
 
+import torch.multiprocessing as mp
 from colorama import Fore, Style
 
 logger = logging.getLogger(__name__)
@@ -88,7 +88,7 @@ def ansi_to_html(ansi_code):
 
 
 def log_to_queue(
-    queue: Queue, message: str, color: str = Fore.BLUE, log_level: int = logging.DEBUG, scope: str = "system"
+    queue: mp.Queue, message: str, color: str = Fore.BLUE, log_level: int = logging.DEBUG, scope: str = "system"
 ) -> None:
     color = ansi_to_html(color.split("[")[-1])
 

@@ -1,8 +1,8 @@
 import logging
 import time
-from multiprocessing import Event, Queue
 from typing import Optional
 
+import torch.multiprocessing as mp
 from colorama import Fore
 from transformers import pipeline
 from transformers.pipelines.audio_utils import ffmpeg_microphone_live
@@ -15,8 +15,8 @@ from ..utils import log_to_queue
 class SpeechRecognizer:
     def __init__(self, **kwargs) -> None:
         self.device = settings.TORCH_DEVICE
-        self.log_queue: Optional[Queue] = kwargs.get("log_queue")
-        self.shutdown_flag: Optional[Event] = kwargs.get("shutdown_flag")
+        self.log_queue: Optional[mp.Queue] = kwargs.get("log_queue")
+        self.shutdown_flag: Optional[mp.Event] = kwargs.get("shutdown_flag")
         self.command_classifier = pipeline(
             "audio-classification", model="MIT/ast-finetuned-speech-commands-v2", device=self.device
         )

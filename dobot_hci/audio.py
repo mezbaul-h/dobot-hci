@@ -3,10 +3,10 @@ This module provides classes and functions for recording and playing audio.
 """
 
 import logging
-from multiprocessing import Event, Queue
 from typing import Dict, List, Optional, Union
 
 import numpy as np
+import torch.multiprocessing as mp
 
 from .utils import log_to_queue
 
@@ -50,9 +50,9 @@ class AudioIO:
 
     def __init__(self, **kwargs) -> None:
         self.input_stream = None
-        self.log_queue: Optional[Queue] = kwargs.get("log_queue")
+        self.log_queue: Optional[mp.Queue] = kwargs.get("log_queue")
         self.pa = None
-        self.shutdown_flag: Optional[Event] = kwargs.get("shutdown_flag")
+        self.shutdown_flag: Optional[mp.Event] = kwargs.get("shutdown_flag")
 
     def _initialize_input_stream(self) -> None:
         """

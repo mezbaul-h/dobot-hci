@@ -3,12 +3,12 @@ import math
 import os
 import queue
 import time
-from multiprocessing import Event
 from typing import Optional
 
 import cv2
 import numpy as np
 import pyrealsense2 as rs
+import torch.multiprocessing as mp
 from PyQt5.QtCore import QLibraryInfo, Qt, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtGui import QImage, QPixmap, QTextCursor
 from PyQt5.QtWidgets import QHBoxLayout, QLabel, QTextEdit, QVBoxLayout, QWidget
@@ -36,7 +36,7 @@ class CameraThread(QThreadBase):
     def __init__(self, **kwargs):
         super().__init__()
 
-        self.shutdown_event: Optional[Event] = kwargs.get("shutdown_event")
+        self.shutdown_event: Optional[mp.Event] = kwargs.get("shutdown_event")
         self.camera_index = kwargs.get("camera_index", 0)
         self.object_positions = kwargs["object_positions"]
         self.fps = None
