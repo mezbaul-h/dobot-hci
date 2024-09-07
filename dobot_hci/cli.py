@@ -18,6 +18,7 @@ from .gui import GUIApplication
 from .models.language import OllamaLM
 from .models.speech import SpeechRecognizer
 from .models.vision import MicrosoftFlorence2
+from .robot_controls import execute_robot_action
 from .utils import log_to_queue, print_system_message
 
 # Thread-safe flag for graceful shutdown
@@ -38,9 +39,8 @@ You are an AI assistant integrated with a robot. Your role is to interpret user 
 6. move_object_to_right(object_name)
 7. move_object_to_up(object_name)
 8. move_object_to_down(object_name)
-9. move_object_near_of(source, target)
+9. move_object_near(source, target)
 10. move_object_on_top_of(source, target)
-11. move_object_over(source, target)
 
 Your task is to:
 1. Interpret the user's instruction.
@@ -176,8 +176,27 @@ def transcription_handler(**kwargs):
     speech_recognizer.audio_io.close()
 
 
-def process_actions(actions: List[dict]) -> None:
-    ...
+def parse_actions(actions: List[dict]):
+    if isinstance(actions, dict):
+        actions = [actions]
+
+    parsed_actions = []
+
+    for action in actions:
+        if isinstance(action, dict):
+            action = action["action"]
+
+        arguments = [item for item in action.split("(")[-1][:-1].split(",") if item]
+        method = action.split("(")[0]
+
+        parsed_actions.append(
+            {
+                "arguments": arguments,
+                "method": method,
+            }
+        )
+
+    return parsed_actions
 
 
 def robot_controller(**kwargs):
@@ -199,18 +218,39 @@ def robot_controller(**kwargs):
             actions = action_queue.get(timeout=1)
             log_to_queue(log_queue, f"Consumed: {actions}")
 
-            # frame = Image.fromarray(latest_frame.get_image())
-            # _, result = florence_vision_model.run_inference(frame, item)
-            # detections = florence_vision_model.inference_to_sv_detections(result, frame)
-            #
-            # new_object_positions = {}
-            #
-            # for detection in detections:
-            #     new_object_positions[detections[-1]['class_name'][0]] = detection[0].tolist()
-            #
-            # object_positions.clear()
-            # object_positions.update(new_object_positions)
-            #
+            parsed_actions = parse_actions(actions)
+
+            classification_objects = []
+
+            for parsed_action in parsed_actions:
+                classification_objects.extend(parsed_action["arguments"])
+
+            # Position with florence
+            frame = Image.fromarray(latest_frame.get_image())
+            new_object_positions = {}
+
+            for classification_object in classification_objects:
+                _, result = florence_vision_model.run_inference(frame, classification_object)
+                detections = florence_vision_model.inference_to_sv_detections(result, frame)
+
+                for detection in detections:
+                    new_object_positions[detections[-1]["class_name"][0]] = detection[0].tolist()
+
+            # Do not remove end-effector position
+            for k in object_positions.keys():
+                if not k.startswith("aruco-marker-"):
+                    del object_positions[k]
+
+            object_positions.update(new_object_positions)
+
+            for parsed_action in parsed_actions:
+                arguments = parsed_action["arguments"]
+                method = parsed_action["method"]
+
+                log_to_queue(log_queue, f"Executing {method} with {arguments}")
+                execute_robot_action(method, arguments, log_queue)
+                log_to_queue(log_queue, f"Done executing {method}")
+
             robot_working_flag.clear()
         except queue.Empty:
             pass
