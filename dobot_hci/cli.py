@@ -31,16 +31,16 @@ _llm_model = OllamaLM()
 _system_prompt = """
 You are an AI assistant integrated with a robot. Your role is to interpret user instructions and translate them into a series of actionable commands for the robot. The robot can perform the following actions:
 
-1. move_object_to_left_of(source_object_name, target_object_name)
-2. move_object_to_right_of(source_object_name, target_object_name)
-3. move_object_to_up_of(source_object_name, target_object_name)
+1. move_object_near(source, target)
+2. move_object_on_top_of(source, target)
+3. move_object_to_down(object_name)
 4. move_object_to_down_of(source_object_name, target_object_name)
 5. move_object_to_left(object_name)
-6. move_object_to_right(object_name)
-7. move_object_to_up(object_name)
-8. move_object_to_down(object_name)
-9. move_object_near(source, target)
-10. move_object_on_top_of(source, target)
+6. move_object_to_left_of(source_object_name, target_object_name)
+7. move_object_to_right(object_name)
+8. move_object_to_right_of(source_object_name, target_object_name)
+9. move_object_to_up(object_name)
+10. move_object_to_up_of(source_object_name, target_object_name)
 
 Your task is to:
 1. Interpret the user's instruction.
@@ -248,12 +248,14 @@ def robot_controller(**kwargs):
                 method = parsed_action["method"]
 
                 log_to_queue(log_queue, f"Executing {method} with {arguments}")
-                execute_robot_action(method, arguments, log_queue)
+                execute_robot_action(method, arguments, object_positions, log_queue)
                 log_to_queue(log_queue, f"Done executing {method}")
 
             robot_working_flag.clear()
         except queue.Empty:
             pass
+        except (AttributeError, ValueError) as exc:
+            log_to_queue(log_queue, f"Failed execution; reason: {exc}", color=Fore.RED, log_level=logging.ERROR)
 
 
 def ui_handler(**kwargs):
