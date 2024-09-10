@@ -5,6 +5,7 @@ import re
 import signal
 import sys
 import time
+import traceback
 from typing import List
 
 import click
@@ -163,15 +164,27 @@ def transcription_handler(**kwargs):
     def _is_paused():
         return robot_working_flag.is_set()
 
-    for transcription in speech_recognizer.run(is_paused=_is_paused):
-        actions = process_transcription(transcription, log_queue=log_queue)
+    # for transcription in speech_recognizer.run(is_paused=_is_paused):
+    #     actions = process_transcription(transcription, log_queue=log_queue)
+    #
+    #     if actions:
+    #         robot_working_flag.set()
+    #         action_queue.put_nowait(actions)
+    #
+    #     if shutdown_flag.is_set():
+    #         break
+    while True:
+        if _is_paused():
+            time.sleep(1)
+            continue
 
-        if actions:
-            robot_working_flag.set()
-            action_queue.put_nowait(actions)
+        robot_working_flag.set()
+        action_queue.put_nowait(["move_object_on_top_of(phone, hand)"])
 
         if shutdown_flag.is_set():
             break
+
+        time.sleep(1)
 
     speech_recognizer.audio_io.close()
 
@@ -182,11 +195,14 @@ def parse_actions(actions: List[dict]):
 
     parsed_actions = []
 
+    if "error" in actions[0]:
+        return None
+
     for action in actions:
         if isinstance(action, dict):
             action = action["action"]
 
-        arguments = [item for item in action.split("(")[-1][:-1].split(",") if item]
+        arguments = [item.strip() for item in action.split("(")[-1][:-1].split(",") if item]
         method = action.split("(")[0]
 
         parsed_actions.append(
@@ -220,6 +236,10 @@ def robot_controller(**kwargs):
 
             parsed_actions = parse_actions(actions)
 
+            if not parsed_actions:
+                robot_working_flag.clear()
+                continue
+
             classification_objects = []
 
             for parsed_action in parsed_actions:
@@ -236,11 +256,6 @@ def robot_controller(**kwargs):
                 for detection in detections:
                     new_object_positions[detections[-1]["class_name"][0]] = detection[0].tolist()
 
-            # Do not remove end-effector position
-            for k in object_positions.keys():
-                if not k.startswith("aruco-marker-"):
-                    del object_positions[k]
-
             object_positions.update(new_object_positions)
 
             for parsed_action in parsed_actions:
@@ -250,12 +265,18 @@ def robot_controller(**kwargs):
                 log_to_queue(log_queue, f"Executing {method} with {arguments}")
                 execute_robot_action(method, arguments, object_positions, log_queue)
                 log_to_queue(log_queue, f"Done executing {method}")
-
-            robot_working_flag.clear()
         except queue.Empty:
             pass
         except (AttributeError, ValueError) as exc:
+            print(traceback.format_exc())
             log_to_queue(log_queue, f"Failed execution; reason: {exc}", color=Fore.RED, log_level=logging.ERROR)
+        finally:
+            robot_working_flag.clear()
+
+            # Do not remove end-effector position
+            for k in object_positions.keys():
+                if not k.startswith("aruco-marker-"):
+                    del object_positions[k]
 
 
 def ui_handler(**kwargs):

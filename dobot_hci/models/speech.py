@@ -15,7 +15,7 @@ from ..utils import ProcessTime, log_to_queue
 
 class SpeechRecognizer:
     def __init__(self, **kwargs) -> None:
-        self.device = settings.TORCH_DEVICE
+        self.device = "cpu"
         self.log_queue: Optional[mp.Queue] = kwargs.get("log_queue")
         self.shutdown_flag: Optional[mp.Event] = kwargs.get("shutdown_flag")
         self.command_classifier = pipeline(
@@ -95,7 +95,7 @@ class SpeechRecognizer:
             if self.shutdown_flag and self.shutdown_flag.is_set():
                 break
 
-            self.wait_on_wake_command(debug=False)
+            self.wait_on_wake_command(debug=True)
 
             if self.shutdown_flag and self.shutdown_flag.is_set():
                 break

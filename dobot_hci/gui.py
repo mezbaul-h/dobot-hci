@@ -155,8 +155,7 @@ class CameraThread(QThreadBase):
 
         if markers:
             for marker_id, positions in markers.items():
-                if marker_id not in self.object_positions:
-                    self.object_positions[marker_id] = positions
+                self.object_positions[marker_id] = positions
             self.aruco_last_detected_at = time.time()
         elif (time.time() - self.aruco_last_detected_at) >= 2:
             for k in self.object_positions.keys():
@@ -202,6 +201,8 @@ class CameraThread(QThreadBase):
             color_frame = np.asanyarray(color_frame.get_data())
             # depth_image = np.asanyarray(depth_frame.get_data())
 
+            color_frame = cv2.cvtColor(color_frame, cv2.COLOR_BGR2RGB)
+
             return True, color_frame
         else:
             ret, frame = self.capture.read()
@@ -214,7 +215,7 @@ class CameraThread(QThreadBase):
     def run(self):
         self._init_camera_feed()
 
-        aruco_dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_100)
+        aruco_dictionary = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_1000)
 
         aruco_parameters = cv2.aruco.DetectorParameters()
         aruco_parameters.minDistanceToBorder = 0

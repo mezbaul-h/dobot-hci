@@ -9,7 +9,7 @@ install_cpu_dependencies() {
 
 install_cuda_dependencies() {
   pip install --requirement requirements.txt
-  pip install git+https://github.com/Dao-AILab/flash-attention.git
+  pip install --no-build-isolation git+https://github.com/Dao-AILab/flash-attention.git
 }
 
 # Check if nvidia-smi is available

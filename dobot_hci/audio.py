@@ -91,6 +91,7 @@ class AudioIO:
         Returns:
             True if the audio data is silent, False otherwise.
         """
+        print(np.max(data))
         return np.max(data) < AudioIO.THRESHOLD
 
     def record_audio(self) -> Optional[Dict[str, Union[int, np.ndarray]]]:

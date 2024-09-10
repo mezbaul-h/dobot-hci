@@ -1,17 +1,21 @@
+import time
 from typing import List
 
 import torch.multiprocessing as mp
+
+from dobot_hci.movement import Movement
 
 
 class RobotAction:
     def __init__(self, object_positions, **kwargs):
         self.log_queue = kwargs["log_queue"]
+        self.movement = Movement()
         self.object_positions = object_positions
 
     @property
     def end_effector_position(self):
-        for k in self.object_positions:
-            if k.startswith("end_effector"):
+        for k in self.object_positions.keys():
+            if k.startswith("aruco-"):
                 return self.object_positions[k]
 
         raise ValueError("End effector position not found")
@@ -26,9 +30,28 @@ class RobotAction:
         target_object_position = self.get_position_center(self.object_positions[target_object_name])
 
     def move_object_on_top_of(self, source_object_name, target_object_name):
-        end_effector_position = self.get_position_center(self.end_effector_position)
         source_object_position = self.get_position_center(self.object_positions[source_object_name])
         target_object_position = self.get_position_center(self.object_positions[target_object_name])
+
+        goal_reached = False
+
+        while not goal_reached:
+            end_effector_position = self.get_position_center(self.end_effector_position)
+
+            goal_reached = self.movement.step(end_effector_position, source_object_position)
+
+        self.movement.pick()
+
+        goal_reached = False
+
+        while not goal_reached:
+            end_effector_position = self.get_position_center(self.end_effector_position)
+
+            goal_reached = self.movement.step(end_effector_position, target_object_position)
+
+        self.movement.drop()
+
+        # time.sleep(10)
 
     def move_object_to_down(self, object_name):
         end_effector_position = self.get_position_center(self.end_effector_position)
@@ -40,8 +63,27 @@ class RobotAction:
         target_object_position = self.get_position_center(self.object_positions[target_object_name])
 
     def move_object_to_left(self, object_name):
-        end_effector_position = self.get_position_center(self.end_effector_position)
         object_position = self.get_position_center(self.object_positions[object_name])
+
+        goal_reached = False
+
+        while not goal_reached:
+            end_effector_position = self.get_position_center(self.end_effector_position)
+
+            goal_reached = self.movement.step(end_effector_position, object_position)
+
+        self.movement.pick()
+
+        goal_reached = False
+
+        while not goal_reached:
+            end_effector_position = self.get_position_center(self.end_effector_position)
+
+            goal_reached = self.movement.step(
+                end_effector_position, (object_position[0] + 40, object_position[1] + 40)
+            )
+
+        self.movement.drop()
 
     def move_object_to_left_of(self, source_object_name, target_object_name):
         end_effector_position = self.get_position_center(self.end_effector_position)

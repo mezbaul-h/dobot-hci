@@ -25,7 +25,7 @@ def fixed_get_imports(filename: Union[str, os.PathLike]) -> list[str]:
 
 class MicrosoftFlorence2:
     def __init__(self, model_name: str = "microsoft/Florence-2-base") -> None:
-        self.device = settings.TORCH_DEVICE
+        self.device = "cpu"
 
         with warnings.catch_warnings(), patch("transformers.dynamic_module_utils.get_imports", fixed_get_imports):
             warnings.simplefilter("ignore")
