@@ -50,6 +50,7 @@ class RobotAction:
             goal_reached = self.movement.step(end_effector_position, target_object_position)
 
         self.movement.drop()
+        self.movement.resetPosition()
 
         # time.sleep(10)
 
@@ -84,6 +85,7 @@ class RobotAction:
             )
 
         self.movement.drop()
+        self.movement.resetPosition()
 
     def move_object_to_left_of(self, source_object_name, target_object_name):
         end_effector_position = self.get_position_center(self.end_effector_position)
@@ -102,6 +104,8 @@ class RobotAction:
     def move_object_to_up(self, object_name):
         end_effector_position = self.get_position_center(self.end_effector_position)
         object_position = self.get_position_center(self.object_positions[object_name])
+
+        time.sleep(20)
 
     def move_object_to_up_of(self, source_object_name, target_object_name):
         end_effector_position = self.get_position_center(self.end_effector_position)

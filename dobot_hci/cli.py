@@ -22,10 +22,6 @@ from .models.vision import MicrosoftFlorence2
 from .robot_controls import execute_robot_action
 from .utils import log_to_queue, print_system_message
 
-# Thread-safe flag for graceful shutdown
-_shutdown_flag = mp.Event()
-
-
 _exit_pattern = re.compile(r"\b(exit|quit|stop)\b", re.IGNORECASE)
 
 _llm_model = OllamaLM()
@@ -72,11 +68,6 @@ Response: {"error": "I cannot fulfill that request."}
 """
 
 
-def _set_shutdown_flag():
-    if not _shutdown_flag.is_set():
-        _shutdown_flag.set()
-
-
 class ImageSharer:
     def __init__(self, max_size=(1920, 1080, 3)):  # Adjust max_size as needed
         self.max_size = max_size
@@ -103,16 +94,16 @@ class ImageSharer:
         return shared_np_array[: h * w * c].reshape(h, w, c)
 
 
-def process_transcription(transcription, log_queue):
+def process_transcription(transcription, log_queue, shutdown_flag):
     if not transcription:
         return None
 
     transcription_len = len(transcription)
 
     # if transcription_len < 10 and _exit_pattern.search(transcription):
-    #     log_to_queue(log_queue, "Exit pattern detected. Exiting...", color=Fore.BLUE, log_level=logging.INFO)
-    #     _set_shutdown_flag()
-    #     return None
+    #    log_to_queue(log_queue, "Exit pattern detected. Exiting...", color=Fore.BLUE, log_level=logging.INFO)
+    #    _set_shutdown_flag()
+    #    return None
 
     if transcription_len < 10:
         log_to_queue(log_queue, "Message to small to be processed", color=Fore.YELLOW, log_level=logging.WARNING)
@@ -131,7 +122,7 @@ def process_transcription(transcription, log_queue):
         if out:
             full_content += out["content"]
 
-        if _shutdown_flag.is_set():
+        if shutdown_flag.is_set():
             return None
 
     # try some patches if necessary.
@@ -164,27 +155,28 @@ def transcription_handler(**kwargs):
     def _is_paused():
         return robot_working_flag.is_set()
 
-    # for transcription in speech_recognizer.run(is_paused=_is_paused):
-    #     actions = process_transcription(transcription, log_queue=log_queue)
-    #
-    #     if actions:
-    #         robot_working_flag.set()
-    #         action_queue.put_nowait(actions)
-    #
-    #     if shutdown_flag.is_set():
-    #         break
-    while True:
-        if _is_paused():
-            time.sleep(1)
-            continue
+    for transcription in speech_recognizer.run(is_paused=_is_paused):
+        actions = process_transcription(transcription, log_queue=log_queue, shutdown_flag=shutdown_flag)
 
-        robot_working_flag.set()
-        action_queue.put_nowait(["move_object_on_top_of(phone, hand)"])
+        if actions:
+            robot_working_flag.set()
+            action_queue.put_nowait(actions)
 
         if shutdown_flag.is_set():
             break
 
-        time.sleep(1)
+    # while True:
+    #     if _is_paused():
+    #         continue
+    #
+    #     robot_working_flag.set()
+    #     action_queue.put_nowait(["move_object_on_top_of(scissors, hand)"])
+    #     action_queue.put_nowait(["move_object_to_up(scissors)"])
+    #
+    #     if shutdown_flag.is_set():
+    #         break
+    #
+    #     time.sleep(1)
 
     speech_recognizer.audio_io.close()
 
@@ -227,8 +219,9 @@ def robot_controller(**kwargs):
     log_queue = kwargs["log_queue"]
     object_positions = kwargs["object_positions"]
     robot_working_flag = kwargs["robot_working_flag"]
+    shutdown_flag = kwargs["shutdown_flag"]
 
-    while not _shutdown_flag.is_set():
+    while not shutdown_flag.is_set():
         try:
             # print(object_positions)
             actions = action_queue.get(timeout=1)
@@ -288,13 +281,13 @@ def ui_handler(**kwargs):
     _return_code = app.exec_()
 
     # GUI exited, mark shutdown flag for other processes.
-    _set_shutdown_flag()
+    kwargs["shutdown_flag"].set()
 
     return _return_code
 
 
 def signal_handler(signum, frame):
-    _set_shutdown_flag()
+    pass
 
 
 def _real_main(**kwargs):
@@ -308,7 +301,7 @@ def _real_main(**kwargs):
         "log_queue": mp.Queue(),
         "object_positions": manager.dict(),
         "robot_working_flag": mp.Event(),
-        "shutdown_flag": _shutdown_flag,
+        "shutdown_flag": mp.Event(),
         "use_realsense": kwargs["use_realsense"],
     }
 
@@ -322,7 +315,7 @@ def _real_main(**kwargs):
     for process in processes:
         process.start()
 
-    if not _shutdown_flag.is_set():
+    if not process_kwargs["shutdown_flag"].is_set():
         time.sleep(1 / 10)
 
     # Wait for processes to finish

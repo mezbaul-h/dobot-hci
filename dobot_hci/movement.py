@@ -56,21 +56,12 @@ class Movement:
         except Exception as e:
             raise ConnectionError(f"Failed to connect to Dobot on port {self.port}: {str(e)}")
 
-        # self.position = self.device.pose()
-        self.position = [
-            277.73638916015625,
-            10.398252487182617,
-            22.054664611816406,
-            -54.75673294067383,
-            2.1441116333007812,
-            42.7947998046875,
-            31.591428756713867,
-            -56.90084457397461,
-        ]
+        self.position = self.device.pose()
+        # self.position = [ 260.19921875, 0.0, 1.1702880859375, 0.0, 0.0, 42.107452392578125, 42.32732391357422, 0.0]
         print("Initial position: ", self.position)
         self.newPose = list(self.position)
-        self.controller = FuzzyLogicController()
-        # self.controller = RobotArmFuzzyController()
+        # self.controller = FuzzyLogicController()
+        self.controller = RobotArmFuzzyController()
 
     def __exit__(self):
         self.device.close()
@@ -93,12 +84,12 @@ class Movement:
         max_val = 100.0
         error = np.clip(error, min_val, max_val)
 
-        update = np.array(self.controller.rullBase(error[0], error[1]))
-        # update = np.array(self.controller.evaluate(error[0], error[1]))
+        # update = np.array(self.controller.rullBase(error[0], error[1]))
+        update = np.array(self.controller.evaluate(error[0], error[1]))
 
         if update.all():
             self.newPose[0] = self.newPose[0] + update[1]
-            self.newPose[1] = self.newPose[1] - update[0]
+            self.newPose[1] = self.newPose[1] + update[0]
 
         print("Change ", update)
 
@@ -114,7 +105,7 @@ class Movement:
 
     def pick(self):
         try:
-            self.device.move_to(self.newPose[0] + 20, self.newPose[1], -45.0, self.newPose[3], wait=True)
+            self.device.move_to(self.newPose[0] + 20, self.newPose[1], -65.0, self.newPose[3], wait=True)
             self.device.suck(enable=True)
             # time.sleep(5)
             # self.device.move_to(self.position[0], self.position[1], self.position[2], self.position[3], wait=True)

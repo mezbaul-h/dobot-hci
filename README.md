@@ -9,4 +9,6 @@ make deps
 
 # Run program
 python -m dobot_hci
+
+sudo usermod -a -G dialout alienware
 ```
