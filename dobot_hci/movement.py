@@ -105,7 +105,7 @@ class Movement:
 
     def pick(self):
         try:
-            self.device.move_to(self.newPose[0] + 20, self.newPose[1], -65.0, self.newPose[3], wait=True)
+            self.device.move_to(self.newPose[0] + 20, self.newPose[1], -70.0, self.newPose[3], wait=True)
             self.device.suck(enable=True)
             # time.sleep(5)
             # self.device.move_to(self.position[0], self.position[1], self.position[2], self.position[3], wait=True)
@@ -117,5 +117,5 @@ class Movement:
             pass
 
     def drop(self):
-        self.device.move_to(self.newPose[0] + 20, self.newPose[1], self.newPose[2], self.newPose[3], wait=True)
+        self.device.move_to(self.newPose[0], self.newPose[1] + 40, -55, self.newPose[3], wait=True)
         self.device.suck(enable=False)

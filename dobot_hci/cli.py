@@ -138,11 +138,13 @@ def process_transcription(transcription, log_queue, shutdown_flag):
 
     return None
 
+loop = 0
 
 def transcription_handler(**kwargs):
     """
     Handles voice input and generates list of actions.
     """
+    global loop
     action_queue = kwargs["action_queue"]
     log_queue = kwargs["log_queue"]
     robot_working_flag = kwargs["robot_working_flag"]
@@ -159,8 +161,14 @@ def transcription_handler(**kwargs):
         actions = process_transcription(transcription, log_queue=log_queue, shutdown_flag=shutdown_flag)
 
         if actions:
+            # time.sleep(10)
             robot_working_flag.set()
-            action_queue.put_nowait(actions)
+            if not loop:
+                action_queue.put_nowait(["move_object_on_top_of(lemon, hand)"])
+            else:
+                action_queue.put_nowait(["move_object_on_top_of(watermelon, hand)"])
+            loop += 1
+            # action_queue.put_nowait(actions)
 
         if shutdown_flag.is_set():
             break
@@ -170,8 +178,8 @@ def transcription_handler(**kwargs):
     #         continue
     #
     #     robot_working_flag.set()
-    #     action_queue.put_nowait(["move_object_on_top_of(scissors, hand)"])
-    #     action_queue.put_nowait(["move_object_to_up(scissors)"])
+    #     action_queue.put_nowait(["move_object_on_top_of(watermelon, hand)"])
+    #     # action_queue.put_nowait(["move_object_to_up(scissors)"])
     #
     #     if shutdown_flag.is_set():
     #         break

@@ -30,7 +30,7 @@ class AudioIO:
     RATE = 24000
     CHUNK = 2048
     THRESHOLD = 800
-    SILENCE_LIMIT = 5
+    SILENCE_LIMIT = 3
 
     def __enter__(self) -> "AudioIO":
         """
