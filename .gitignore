@@ -200,3 +200,5 @@ fabric.properties
 config*.json
 
 *.pt
+
+test_aug.py
