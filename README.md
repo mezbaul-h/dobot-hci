@@ -2,6 +2,14 @@
 
 This repository contains the source code implementing the system presented in our paper: *Advancing Human-Robot Interaction: A Multimodal Approach Combining Video & Speech Language Models with Fuzzy Logic*.
 
+### Contributors
+This project was completed with the contributions of:
+- Mezbaul Haque
+- Michał Kaczmarczyk
+- BahaaEldin Hassan
+- Jerome C. Johny
+
+
 ## Environment
 
 The project was developed and tested under the following environment specifications:
